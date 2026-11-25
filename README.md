@@ -109,3 +109,6 @@ http://localhost:5173:
 npm run dev:server   # the API on port 3000, restarts on changes
 npm run dev:web      # Vite, proxies /api to port 3000
 ```
+
+No real email is sent: after registering, the server's terminal prints the confirmation link.
+Open it to confirm the address, then sign in.

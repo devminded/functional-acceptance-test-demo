@@ -37,6 +37,12 @@ jobs:
     # Only pushes to main. workflow_run runs with this repository's permissions, so it must never
     # check out code from a pull request, least of all one from a fork.
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    # A wait timer on this environment widens the debounce window: commits that land while a run
+    # waits replace it, just as they do while a run is in progress. No deployment happens here,
+    # so the job uses the environment's protection rules without recording a deployment.
+    environment:
+      name: acceptance
+      deployment: false
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:

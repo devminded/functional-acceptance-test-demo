@@ -1,0 +1,100 @@
+# UI acceptance tests, started by a successful commit build on main.
+#
+# They take longer than a commit build, so they are debounced: when several commits land while
+# they run, only the newest is tested next. The commits in between are covered by that run,
+# since each contains the ones before it.
+#
+# GitHub only runs workflow_run workflows from the default branch: changes to this file take
+# effect once they are on main, and a run always uses this file as it is on main's head, even when
+# it tests an older commit. The code, lock file and pages under test do come from that commit.
+#
+# Such a run also belongs to main's head rather than to the commit it tests. That is why the run
+# is titled after the tested commit, and why it posts its result to that commit as a status.
+name: Acceptance tests
+run-name: Acceptance tests of ${{ github.event.workflow_run.display_title }} (${{ github.event.workflow_run.head_sha }})
+
+on:
+  workflow_run:
+    workflows: [Commit build] # must match the `name:` in commit-build.yml exactly
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read # to download the pages the commit build uploaded
+  statuses: write # to show the result on the commit that was tested
+
+# The debounce. One group for the whole repository, without cancel-in-progress: a run in
+# progress always finishes, so main keeps getting results. GitHub keeps at most one waiting
+# run per group and cancels it when a newer one arrives, so a burst of commits ends in one run
+# for the newest commit instead of a queue of stale ones.
+concurrency:
+  group: acceptance-tests
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    # Only pushes to main. workflow_run runs with this repository's permissions, so it must never
+    # check out code from a pull request, least of all one from a fork.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      TESTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+      STATUS_CONTEXT: Acceptance tests
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      # The token goes only to these two steps, never to npm or the tests.
+      - name: Show the tests as running on the tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$TESTED_COMMIT"
+          -f state=pending -f context="$STATUS_CONTEXT" -f target_url="$RUN_URL"
+          -f description="Running"
+
+      # The commit the build tested, not whatever main points at now.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: web-pages
+          path: dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # --with-deps also installs the system libraries Chromium needs; that takes sudo, fine on a runner.
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run test:acceptance
+
+      - if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Show the result on the tested commit
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          case "$JOB_STATUS" in
+            success) state=success description="Passed" ;;
+            cancelled) state=error description="Cancelled" ;;
+            *) state=failure description="Failed" ;;
+          esac
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$TESTED_COMMIT" \
+            -f state="$state" -f context="$STATUS_CONTEXT" -f target_url="$RUN_URL" \
+            -f description="$description"

@@ -1,0 +1,47 @@
+# Fast feedback on every push: lint, unit and functional tests, build. No browser, no server.
+# The acceptance tests run separately (acceptance-tests.yml), after this succeeds on main.
+name: Commit build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to a pull request makes the older build pointless, so a pull request shares one
+# group and cancels. On main every commit gets a group of its own, so the history shows which
+# commit broke the build: GitHub keeps only one waiting run per group and cancels the others,
+# so a group shared by all of main would skip the builds of commits pushed in quick succession.
+concurrency:
+  group: commit-build-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:build
+      - run: npm run build
+
+      # Built once here; the acceptance tests download and test this very bundle.
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: web-pages
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error

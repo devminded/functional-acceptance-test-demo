@@ -2,10 +2,17 @@
 # The acceptance tests run separately (acceptance-tests.yml), after this succeeds on main.
 name: Commit build
 
+# A change to the docs alone can't break the build, so it doesn't start one, nor the acceptance
+# tests that follow a build. A push that also changes anything else builds as usual.
 on:
   push:
     branches: [main]
+    paths-ignore: &docs
+      - '**/*.md'
+      - 'docs/**'
+      - LICENSE
   pull_request:
+    paths-ignore: *docs
 
 permissions:
   contents: read

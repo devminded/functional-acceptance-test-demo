@@ -15,6 +15,7 @@ export default defineConfig({
     },
   },
   server: {
-    proxy: { '/api': API_SERVER },
+    // The trailing slash matters: Vite matches by prefix, and '/api' would also catch /api.ts.
+    proxy: { '/api/': API_SERVER },
   },
 });

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postboard</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <span class="brand">Postboard</span>
+      <button id="sign-out" type="button">Sign out</button>
+    </header>
+    <main hidden>
+      <h1 id="greeting"></h1>
+
+      <form id="share-form" aria-label="Share a post">
+        <label>What's on your mind? <textarea name="text" required maxlength="280" rows="3"></textarea></label>
+        <button type="submit">Share</button>
+        <p class="error" role="alert" hidden></p>
+      </form>
+
+      <h2 id="timeline-heading">Timeline</h2>
+      <ol id="timeline" aria-labelledby="timeline-heading"></ol>
+    </main>
+    <script type="module" src="./home.ts"></script>
+  </body>
+</html>

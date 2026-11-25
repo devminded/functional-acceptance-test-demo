@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in · Postboard</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header><span class="brand">Postboard</span></header>
+    <main>
+      <p id="notice" role="status" hidden></p>
+
+      <form id="sign-in-form" aria-labelledby="sign-in-heading">
+        <h1 id="sign-in-heading">Sign in</h1>
+        <label>Email address <input name="email" type="email" required autocomplete="email" /></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password" /></label>
+        <button type="submit">Sign in</button>
+        <p class="error" role="alert" hidden></p>
+      </form>
+
+      <form id="register-form" aria-labelledby="register-heading">
+        <h2 id="register-heading">New here? Join us</h2>
+        <label>Name <input name="name" required autocomplete="name" /></label>
+        <label>Email address <input name="email" type="email" required autocomplete="email" /></label>
+        <label>Password <input name="password" type="password" required minlength="8" autocomplete="new-password" /></label>
+        <button type="submit">Register</button>
+        <p class="error" role="alert" hidden></p>
+      </form>
+    </main>
+    <script type="module" src="./sign-in.ts"></script>
+  </body>
+</html>

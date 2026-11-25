@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+make lint
+# Offline: checks every `uses:` has an entry in actions.lock. The runner checks the
+# locked commits itself when a job starts.
+gh actions-lock --verify-local
